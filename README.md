@@ -15,8 +15,9 @@ Options:
 * max - maximum numeric value
 * source - Pass an array to use as values
 * value - current display value
+* label - a function or string to render input value name.
 
-You may also pass the value by using data attributes as shown:
+You may also pass the options by using the custom data attributes as shown:
 
-	<div class="numeric-stepper" id="stepper" data-value="7">
+	<div class="numeric-stepper" id="stepper" data-value="7" data-label="%n Days">
 	

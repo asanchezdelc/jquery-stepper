@@ -39,7 +39,7 @@
 	//get plugin's default and user options combined.
  	getOptions: function(options)
  	{
- 		options = $.extend({}, $.fn.stepper.defaults, options);
+ 		options = $.extend({}, $.fn.stepper.defaults, options, this.$element.data());
  		return options;
  	},
 	
@@ -111,7 +111,8 @@
 	display: function()
 	{
 		var value = this.options.value
-		if(this.options.labelFormat) value = this.options.labelFormat(value);
+		if(typeof this.options.label == "function") value = this.options.label(value);
+		else if(typeof this.options.label == "string") value = this.options.label.replace('%n', value);
 		
 		if(this.isArrayDriven) value = this.options.source[value];
 		
@@ -155,7 +156,7 @@
  	max: 0, //0 is infinite
  	min:0, //0 is infinite
  	source: false,
- 	labelFormat: null,
+ 	label: false,
 	autoReset: false,
 	template: '<input class="value" name="ns_textbox" size="2" type="text"/> <button type="button" class="btn up-btn">+</button><button type="button" class="btn down-btn">-</button>'
 }
