@@ -1,154 +1,161 @@
-(function( $ ){
-  var methods = {
-     init : function( options ) {
-	
-       return this.each(function(){
-		 
-		 
-         var $this = $(this),
-             data = $this.data('stepper'),
-			 $valEL = $this.find('input.value'),
-			 increment = 1,
-			current = 0,
-			max = 0,
-			min = 0,
-			autoReset = false,
-			source = options.source,
-			 up = $this.append('<button type="button" class="btn up-btn"/>'),
-			down = $this.append('<button type="button" class="btn down-btn"/>');
+/**
+ * jQuery Numeric and Array Stepper Plugin
+ * by Adrian Sanchez del C.
+ */
+ 
+
+ var Stepper = function(element, options){
+ 	this.init(element,options);
+ }
+
+ Stepper.prototype = {
+ 	constructor: Stepper,
+ 	init: function(element, options){
+		this.$element = $(element)
+ 		this.options = this.getOptions(options)
 			
-		$up = $this.find('.up-btn');
-		$down = $this.find('.down-btn');
-		$up.text('+');
-		$down.text('-');
+		//create plugin markup data
+		this.$element.append(this.options.template)		
+			
+		//assign pointer to buttons
+		this.$upButton = this.$element.find('.up-btn');
+		this.$downButton = this.$element.find('.down-btn');
+		//setup events
+		this.$upButton.on('click', false, $.proxy(this.up, this));
+		this.$downButton.on('click', false, $.proxy(this.down, this));
+
+		//get text field element reference
+		this.$field = this.$element.find('input[name="ns_textbox"]')
+
+		//display value on field			
+		this.isArrayDriven = (typeof this.options.source == "object") ? true:false
 		
-						
-		//set common variables
-		if(typeof options != "undefined")
+		//making sure the initial value is a valid one
+		this.initChecks();
+		
+		this.display()
+ 	},
+	
+	//get plugin's default and user options combined.
+ 	getOptions: function(options)
+ 	{
+ 		options = $.extend({}, $.fn.stepper.defaults, options);
+ 		return options;
+ 	},
+	
+	//makes sure we have valid data
+	initChecks: function(){
+		var v = this.options.value,
+			inc = this.options.increment,
+			min = this.options.min,
+			arr = this.options.source,
+			max = this.options.max;
+		
+		if(!this.isArrayDriven)
 		{
-			//set max param
-			if((typeof options.source) == "object")
-			{
-				max = options.source.length-1;
-				min = 0;
-				if((typeof options.value) == "number")
-				{
-					if(options.value >= min && options.value <= max) current = value;
-					$valEL.val(options.source[current]);
-				}
-			}
-			
-			if((typeof options.max) == "number"){
-				max = options.max;
-			}
-			
-			if((typeof options.min) == "number"){
-				min = options.min;
-			}
-			
-			//set min param
-			if((typeof options.value) == "number")
-			{
-				if(options.value >= min && options.value <= max) current = options.value;
-				$valEL.val(current);
-			}
-			
-			if((typeof options.autoReset) == "boolean")
-			{
-				autoReset = options.autoReset;
-			}
-			
-			if((typeof options.increment) == "number")
-			{
-				increment = options.increment;
-			}
+			if(min != 0 && max != 0) if(v < min || v > max) v = min;
+		}else{
+			if((v > arr.length-1) || (v < 0)) v = 0;
 		}
 		
-			            
-		 $('.up-btn', this).click(function(e)
-		{
-			if((typeof source) == "object")
-			{		
-				current = (++current <= max) ? current:0;				
-				$valEL.val(options.source[current]);						
-			}else{
-				current += increment;
-				if(autoReset) 
-				{
-					//current = (++current <= max) ? current:0;
-					current = (current <= max) ? current:0;
-				}
-				else {
-					//current = (++current <= max) ? current:--current;	
-					current = (current <= max) ? current:(current -= increment);
-				}
-							
-				$valEL.val(current);
-			}
-			return false;
-		});
 		
-		$('.down-btn', this).click(function(e)
-		{
-			if((typeof source) == "object")
-			{
-				current = (--current >= min) ? current:max;				
-				$valEL.val(options.source[current]);
-			}else{
-				current -= increment;
-				if(autoReset)
-				{
-					//current = (--current >= min) ? current:max;
-					current = (current >= min) ? current:max;
-				}else{
-					//current = (--current >= min) ? current:++current;
-					current = (current >= min) ? current:(current += increment);
-				}
+		this.options.value = v;
+	},
+	
+	//click listener for up event
+	up: function(e){
+		var v = this.options.value;		
+		if(this.isArrayDriven){
+			this.sourceActions('up');
+		}else{
+			this.increment()			
+		}
+		this.display()
+	},
+	
+	increment: function(){
+		var v = this.options.value,
+			inc = this.options.increment,
+			min = this.options.min,
+			r = this.options.autoReset,
+			max = this.options.max;	
+		if(max != 0) v = (v < max)? v+inc:(!r)?max:min
+		else v += inc
 				
-				$valEL.val(current);
-			}
-			return false;
-		});
-
-         // If the plugin hasn't been initialized yet
-         if ( ! data ) {
-           /*
-             Do more setup stuff here
-           */
-           $(this).data('stepper', {
-               target : $this,		            
-           });
-         }
+		this.options.value = v;
+	},
+	
+	//click listener for down event
+	down: function(e){
+		if(this.isArrayDriven){
+			this.sourceActions('down');
+		}else{
+			this.decrement()			
+		}
+		this.display()
+	},
+	
+	decrement: function(){
+		var v = this.options.value,
+			inc = this.options.increment,
+			min = this.options.min,
+			max = this.options.max,
+			r = this.options.autoReset;
 		
-       });
-     },
-     destroy : function( ) {
+		if(min != 0) v = (v > min)? v-inc:(!r)?min:max
+		else v -= inc
+		
+		this.options.value = v;
+	},
 
-       return this.each(function(){
+	display: function()
+	{
+		var value = this.options.value
+		if(this.options.labelFormat) value = this.options.labelFormat(value);
+		
+		if(this.isArrayDriven) value = this.options.source[value];
+		
+		this.$field.val(value);
+	},
+	
+	sourceActions: function(type){
+		var v = this.options.value,
+			r = this.options.autoReset,
+			arr = this.options.source;
+		if(type == "up") {
+			if(arr[v+1]) v++;
+			else if(r) v = 0;
+		}else if (type == "down") {
+			if(arr[v-1]) v--;
+			else if(r) v = arr.length -1;
+		}
+		
+		this.options.value = v
+	}
+	
+ }
 
-         var $this = $(this),
-             data = $this.data('stepper');
 
-         // Namespacing FTW
-         $(window).unbind('.stepper');
-         data.stepper.remove();
-         $this.removeData('stepper');
+ $.fn.stepper = function( option)
+ {
+ 	return this.each(function(){
+ 		var $this= $(this),
+		data = $this.data('stepper'),
+ 		options = typeof option == 'object' && option
+		if(!data) $this.data('stepper', (data = new Stepper(this, options)))
+ 		if(typeof option == 'string') data[option]()
+ 	});
+ }
 
-       })
+ $.fn.stepper.Constructor = Stepper
 
-     },
-  };
-
-  $.fn.stepper = function( method ) {
-
-    if ( methods[method] ) {
-      return methods[method].apply( this, Array.prototype.slice.call( arguments, 1 ));
-    } else if ( typeof method === 'object' || ! method ) {
-      return methods.init.apply( this, arguments );
-    } else {
-      $.error( 'Method ' +  method + ' does not exist on jQuery.Stepper' );
-    }    
-
-  };
-
-})( jQuery );
+ $.fn.stepper.defaults = {
+ 	value: 1,
+ 	increment: 1,
+ 	max: 0, //0 is infinite
+ 	min:0, //0 is infinite
+ 	source: false,
+ 	labelFormat: null,
+	autoReset: false,
+	template: '<input class="value" name="ns_textbox" size="2" type="text"/> <button type="button" class="btn up-btn">+</button><button type="button" class="btn down-btn">-</button>'
+}
